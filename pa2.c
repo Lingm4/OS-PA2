@@ -217,22 +217,12 @@ pick_next:
 	/* Let's pick a new process to run next */
 
 	if (!list_empty(&readyqueue)) {
-		/**
-		 * If the ready queue is not empty, pick the first process
-		 * in the ready queue
-		 */
 		struct process *shortest_job = list_first_entry(&readyqueue, struct process, list);
 		struct list_head *pos = NULL;
 		list_for_each(pos, &readyqueue){
 			if(list_entry(pos, struct process, list)->lifespan < shortest_job->lifespan) shortest_job = list_entry(pos, struct process, list);
 		}
 		next = shortest_job;
-
-		/**
-		 * Detach the process from the ready queue. Note that we use 
-		 * list_del_init() over list_del() to maintain the list head tidy.
-		 * Otherwise, the framework will complain (assert) on process exit.
-		 */
 		list_del_init(&next->list);
 	}
 
@@ -251,11 +241,39 @@ struct scheduler sjf_scheduler = {
 /***********************************************************************
  * STCF scheduler
  ***********************************************************************/
+static struct process *stcf_schedule(void)
+{
+	struct process *next = NULL;
+
+	/* Let's pick a new process to run next */
+	if (!(!current || current->status == PROCESS_BLOCKED) && current->age < current->lifespan) list_add(&(current->list), &readyqueue);
+	
+	if (!list_empty(&readyqueue)) {
+		struct process *shortest_job = list_first_entry(&readyqueue, struct process, list);
+		struct list_head *pos = NULL;
+		list_for_each(pos, &readyqueue){
+			if(list_entry(pos, struct process, list)->lifespan -  list_entry(pos, struct process, list)->age \
+				< shortest_job->lifespan - shortest_job->age) \
+					shortest_job = list_entry(pos, struct process, list);
+		}
+		next = shortest_job;
+		list_del_init(&next->list);
+	}
+	
+	
+	
+	
+	
+	
+
+	return next;
+}
+
 struct scheduler stcf_scheduler = {
 	.name = "Shortest Time-to-Complete First",
 	.acquire = fcfs_acquire, /* Use the default FCFS acquire() */
 	.release = fcfs_release, /* Use the default FCFS release() */
-
+	.schedule = stcf_schedule,
 	/* You need to check the newly created processes to implement STCF.
 	 * Have a look at @forked() callback.
 	 */
