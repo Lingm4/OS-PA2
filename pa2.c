@@ -202,17 +202,48 @@ struct scheduler fifo_scheduler = {
  ***********************************************************************/
 static struct process *sjf_schedule(void)
 {
-	/**
-	 * Implement your own SJF scheduler here.
-	 */
-	return NULL;
+	struct process *next = NULL;
+
+	if (!current || current->status == PROCESS_BLOCKED) {
+		goto pick_next;
+	}
+
+	/* The current process has remaining lifetime. Schedule it again */
+	if (current->age < current->lifespan) {
+		return current;
+	}
+
+pick_next:
+	/* Let's pick a new process to run next */
+
+	if (!list_empty(&readyqueue)) {
+		/**
+		 * If the ready queue is not empty, pick the first process
+		 * in the ready queue
+		 */
+		struct process *shortest_job = list_first_entry(&readyqueue, struct process, list);
+		struct list_head *pos = NULL;
+		list_for_each(pos, &readyqueue){
+			if(list_entry(pos, struct process, list)->lifespan < shortest_job->lifespan) shortest_job = list_entry(pos, struct process, list);
+		}
+		next = shortest_job;
+
+		/**
+		 * Detach the process from the ready queue. Note that we use 
+		 * list_del_init() over list_del() to maintain the list head tidy.
+		 * Otherwise, the framework will complain (assert) on process exit.
+		 */
+		list_del_init(&next->list);
+	}
+
+	return next;
 }
 
 struct scheduler sjf_scheduler = {
 	.name = "Shortest-Job First",
 	.acquire = fcfs_acquire,	/* Use the default FCFS acquire() */
 	.release = fcfs_release,	/* Use the default FCFS release() */
-	.schedule = NULL,			/* TODO: Assign your schedule function  
+	.schedule = sjf_schedule,	/* TODO: Assign your schedule function  
 								   to this function pointer to activate
 								   SJF in the simulation system */
 };
