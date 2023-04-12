@@ -260,12 +260,6 @@ static struct process *stcf_schedule(void)
 		list_del_init(&next->list);
 	}
 	
-	
-	
-	
-	
-	
-
 	return next;
 }
 
@@ -284,11 +278,25 @@ struct scheduler stcf_scheduler = {
 /***********************************************************************
  * Round-robin scheduler
  ***********************************************************************/
+static struct process *rr_schedule(void)
+{
+	struct process *next = NULL;
+
+	/* Let's pick a new process to run next */
+	if (!(!current || current->status == PROCESS_BLOCKED) && current->age < current->lifespan) list_add_tail(&(current->list), &readyqueue);
+	
+	if (!list_empty(&readyqueue)) {
+		next = list_first_entry(&readyqueue, struct process, list);
+		list_del_init(&next->list);
+	}
+	
+	return next;
+}
 struct scheduler rr_scheduler = {
 	.name = "Round-Robin",
 	.acquire = fcfs_acquire, /* Use the default FCFS acquire() */
 	.release = fcfs_release, /* Use the default FCFS release() */
-
+	.schedule = rr_schedule,
 	/* Obviously, ... */
 };
 
