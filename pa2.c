@@ -323,32 +323,6 @@ static struct process *prio_schedule(void)
 	return next;
 }
 
-static bool prio_acquire(int resource_id)
-{
-	struct resource *r = resources + resource_id;
-
-	if (!r->owner) {
-		/* This resource is not owned by any one. Take it! */
-		r->owner = current;
-		return true;
-	}
-
-	/* OK, this resource is taken by @r->owner. */
-
-	/* Update the current process state */
-	current->status = PROCESS_BLOCKED;
-
-	/* And append current to waitqueue */
-	list_add_tail(&current->list, &r->waitqueue);
-
-	/**
-	 * And return false to indicate the resource is not available.
-	 * The scheduler framework will soon call schedule() function to
-	 * schedule out current and to pick the next process to run.
-	 */
-	return false;
-}
-
 static void prio_release(int resource_id)
 {
 	struct resource *r = resources + resource_id;
@@ -357,39 +331,23 @@ static void prio_release(int resource_id)
 
 	r->owner = NULL;
 
-	/* Let's wake up ONE waiter (if exists) that came first */
 	if (!list_empty(&r->waitqueue)) {
 		struct process *highest_priority_waiter = list_first_entry(&r->waitqueue, struct process, list);
 		struct list_head *pos = NULL;
 		list_for_each(pos, &r->waitqueue){
 			if(list_entry(pos, struct process, list)->prio > highest_priority_waiter->prio) highest_priority_waiter = list_entry(pos, struct process, list);
 		}
-		/**
-		 * Ensure the waiter is in the wait status
-		 */
+
 		assert(highest_priority_waiter->status == PROCESS_BLOCKED);
 
-		/**
-		 * Take out the waiter from the waiting queue. Note we use
-		 * list_del_init() over list_del() to maintain the list head tidy
-		 * (otherwise, the framework will complain on the list head
-		 * when the process exits).
-		 */
 		list_del_init(&highest_priority_waiter->list);
-
-		/* Update the process status */
 		highest_priority_waiter->status = PROCESS_READY;
-
-		/**
-		 * Put the waiter process into ready queue. The framework will
-		 * do the rest.
-		 */
 		list_add_tail(&highest_priority_waiter->list, &readyqueue);
 	}
 }
 struct scheduler prio_scheduler = {
 	.name = "Priority",
-	.acquire = prio_acquire,
+	.acquire = fcfs_acquire,
 	.release = prio_release,
 	.schedule = prio_schedule,
 	/**
@@ -425,7 +383,7 @@ static struct process *pa_schedule(void)
 
 struct scheduler pa_scheduler = {
 	.name = "Priority + aging",
-	.acquire = prio_acquire,
+	.acquire = fcfs_acquire,
 	.release = prio_release,
 	.schedule = pa_schedule,
 };
@@ -433,11 +391,82 @@ struct scheduler pa_scheduler = {
 /***********************************************************************
  * Priority scheduler with priority ceiling protocol
  ***********************************************************************/
+static struct process *pcp_schedule(void)
+{
+	struct process *next = NULL;
+
+	/* Let's pick a new process to run next */
+	if (!(!current || current->status == PROCESS_BLOCKED) && current->age < current->lifespan) list_add_tail(&(current->list), &readyqueue);
+	
+	if (!list_empty(&readyqueue)) {
+		struct process *highest_priority_job = list_first_entry(&readyqueue, struct process, list);
+		struct list_head *pos = NULL;
+		list_for_each(pos, &readyqueue){
+			if(list_entry(pos, struct process, list)->prio > highest_priority_job->prio) highest_priority_job = list_entry(pos, struct process, list);
+		}
+		next = highest_priority_job;
+		list_del_init(&next->list);
+	}
+	
+	return next;
+}
+
+static bool pcp_acquire(int resource_id)
+{
+	struct resource *r = resources + resource_id;
+
+	if (!r->owner) {
+		/* This resource is not owned by any one. Take it! */
+		r->owner = current;
+		current->prio = MAX_PRIO;
+		return true;
+	}
+
+	/* OK, this resource is taken by @r->owner. */
+
+	/* Update the current process state */
+	current->status = PROCESS_BLOCKED;
+
+	/* And append current to waitqueue */
+	list_add_tail(&current->list, &r->waitqueue);
+	
+	/**
+	 * And return false to indicate the resource is not available.
+	 * The scheduler framework will soon call schedule() function to
+	 * schedule out current and to pick the next process to run.
+	 */
+	return false;
+}
+
+static void pcp_release(int resource_id)
+{
+	struct resource *r = resources + resource_id;
+
+	assert(r->owner == current);
+
+	r->owner->prio = r->owner->prio_orig;
+	r->owner = NULL;
+
+	if (!list_empty(&r->waitqueue)) {
+		struct process *highest_priority_waiter = list_first_entry(&r->waitqueue, struct process, list);
+		struct list_head *pos = NULL;
+		list_for_each(pos, &r->waitqueue){
+			if(list_entry(pos, struct process, list)->prio > highest_priority_waiter->prio) highest_priority_waiter = list_entry(pos, struct process, list);
+		}
+
+		assert(highest_priority_waiter->status == PROCESS_BLOCKED);
+
+		list_del_init(&highest_priority_waiter->list);
+		highest_priority_waiter->status = PROCESS_READY;
+		list_add_tail(&highest_priority_waiter->list, &readyqueue);
+	}
+}
+
 struct scheduler pcp_scheduler = {
 	.name = "Priority + PCP Protocol",
-	/**
-	 * Ditto
-	 */
+	.acquire = pcp_acquire,
+	.release = pcp_release,
+	.schedule = pcp_schedule,
 };
 
 /***********************************************************************
