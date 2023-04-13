@@ -402,11 +402,32 @@ struct scheduler prio_scheduler = {
 /***********************************************************************
  * Priority scheduler with aging
  ***********************************************************************/
+static struct process *pa_schedule(void)
+{
+	struct process *next = NULL;
+
+	/* Let's pick a new process to run next */
+	if (!(!current || current->status == PROCESS_BLOCKED) && current->age < current->lifespan) list_add_tail(&(current->list), &readyqueue);
+	
+	if (!list_empty(&readyqueue)) {
+		struct process *highest_priority_job = list_first_entry(&readyqueue, struct process, list);
+		struct list_head *pos = NULL;
+		list_for_each(pos, &readyqueue){
+			(list_entry(pos, struct process, list)->prio)++;
+			if(list_entry(pos, struct process, list)->prio > highest_priority_job->prio) highest_priority_job = list_entry(pos, struct process, list);
+		}
+		next = highest_priority_job;
+		list_del_init(&next->list);
+	}
+	
+	return next;
+}
+
 struct scheduler pa_scheduler = {
 	.name = "Priority + aging",
-	/**
-	 * Ditto
-	 */
+	.acquire = prio_acquire,
+	.release = prio_release,
+	.schedule = pa_schedule,
 };
 
 /***********************************************************************
