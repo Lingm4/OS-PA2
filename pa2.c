@@ -391,25 +391,6 @@ struct scheduler pa_scheduler = {
 /***********************************************************************
  * Priority scheduler with priority ceiling protocol
  ***********************************************************************/
-static struct process *pcp_schedule(void)
-{
-	struct process *next = NULL;
-
-	/* Let's pick a new process to run next */
-	if (!(!current || current->status == PROCESS_BLOCKED) && current->age < current->lifespan) list_add_tail(&(current->list), &readyqueue);
-	
-	if (!list_empty(&readyqueue)) {
-		struct process *highest_priority_job = list_first_entry(&readyqueue, struct process, list);
-		struct list_head *pos = NULL;
-		list_for_each(pos, &readyqueue){
-			if(list_entry(pos, struct process, list)->prio > highest_priority_job->prio) highest_priority_job = list_entry(pos, struct process, list);
-		}
-		next = highest_priority_job;
-		list_del_init(&next->list);
-	}
-	
-	return next;
-}
 
 static bool pcp_acquire(int resource_id)
 {
@@ -466,15 +447,42 @@ struct scheduler pcp_scheduler = {
 	.name = "Priority + PCP Protocol",
 	.acquire = pcp_acquire,
 	.release = pcp_release,
-	.schedule = pcp_schedule,
+	.schedule = prio_schedule,
 };
 
 /***********************************************************************
  * Priority scheduler with priority inheritance protocol
  ***********************************************************************/
+
+static bool pip_acquire(int resource_id)
+{
+	struct resource *r = resources + resource_id;
+
+	if (!r->owner) {
+		/* This resource is not owned by any one. Take it! */
+		r->owner = current;
+		return true;
+	}
+
+	/* OK, this resource is taken by @r->owner. */
+
+	/* Update the current process state */
+	current->status = PROCESS_BLOCKED;
+
+	/* And append current to waitqueue */
+	list_add_tail(&current->list, &r->waitqueue);
+	if(r->owner->prio < current->prio) r->owner->prio = current->prio;
+	/**
+	 * And return false to indicate the resource is not available.
+	 * The scheduler framework will soon call schedule() function to
+	 * schedule out current and to pick the next process to run.
+	 */
+	return false;
+}
+
 struct scheduler pip_scheduler = {
 	.name = "Priority + PIP Protocol",
-	/**
-	 * Ditto
-	 */
+	.acquire = pip_acquire,
+	.release = pcp_release,
+	.schedule = prio_schedule,
 };
