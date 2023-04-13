@@ -365,8 +365,10 @@ static struct process *pa_schedule(void)
 	struct process *next = NULL;
 
 	/* Let's pick a new process to run next */
-	if (!(!current || current->status == PROCESS_BLOCKED) && current->age < current->lifespan) list_add_tail(&(current->list), &readyqueue);
-	current->prio = current->prio_orig;
+	if (!(!current || current->status == PROCESS_BLOCKED) && current->age < current->lifespan){
+		list_add_tail(&(current->list), &readyqueue);
+		current->prio = current->prio_orig;
+	}
 	if (!list_empty(&readyqueue)) {
 		struct process *highest_priority_job = list_first_entry(&readyqueue, struct process, list);
 		struct list_head *pos = NULL;
