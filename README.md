@@ -92,7 +92,7 @@ We have learned various process scheduling policies and examined their propertie
 
 - Use [PAsubmit](https://sslab.ajou.ac.kr/pasubmit) for submission
   - 550 pts + 20 pts
-  - You can submit up to **30** times.
+  - You can submit up to **20** times.
   - The details of some testcase results are hidden and you can only check the final decision (i.e., pass/fail);
 
 - Code: ***pa2.c*** (500 pts)
