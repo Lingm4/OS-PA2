@@ -482,9 +482,44 @@ static bool pip_acquire(int resource_id)
 	return false;
 }
 
+static void pip_release(int resource_id)
+{
+	struct resource *r = resources + resource_id;
+
+	assert(r->owner == current);
+
+
+	if (!list_empty(&r->waitqueue)) {
+		struct process *highest_priority_waiter = list_first_entry(&r->waitqueue, struct process, list);
+		struct list_head *pos = NULL;
+		list_for_each(pos, &r->waitqueue){
+			if(list_entry(pos, struct process, list)->prio > highest_priority_waiter->prio) highest_priority_waiter = list_entry(pos, struct process, list);
+		}
+
+		assert(highest_priority_waiter->status == PROCESS_BLOCKED);
+
+		list_del_init(&highest_priority_waiter->list);
+		highest_priority_waiter->status = PROCESS_READY;
+		list_add_tail(&highest_priority_waiter->list, &readyqueue);
+	}
+	struct process *highest_priority_waiter = NULL;
+	for(int i = 0; i < NR_RESOURCES; i++){
+		if (!list_empty(&resources[i].waitqueue) && resources[i].owner == r->owner) {
+			if(highest_priority_waiter == NULL) highest_priority_waiter = list_first_entry(&resources[i].waitqueue, struct process, list);
+			struct list_head *pos = NULL;
+			list_for_each(pos, &resources[i].waitqueue){
+				if(list_entry(pos, struct process, list)->prio > highest_priority_waiter->prio) highest_priority_waiter = list_entry(pos, struct process, list);
+			}
+		}
+	}
+	if(highest_priority_waiter != NULL) r->owner->prio = highest_priority_waiter->prio;
+	else r->owner->prio = r->owner->prio_orig;
+	r->owner = NULL;
+}
+
 struct scheduler pip_scheduler = {
 	.name = "Priority + PIP Protocol",
 	.acquire = pip_acquire,
-	.release = pcp_release,
+	.release = pip_release,
 	.schedule = prio_schedule,
 };
