@@ -52,7 +52,7 @@ struct scheduler {
 
 
 	/***********************************************************************
-	 * void fork(struct process *process)
+	 * void forked(struct process *process)
 	 *
 	 * DESCRIPTION
 	 *   Called when @process is newly forked. You may do per-process

@@ -12,7 +12,7 @@ We have learned various process scheduling policies and examined their propertie
 
 #### Basics
 
-- The simulator maintains the time with `ticks` variable. It is increased by 1 when a scheduling is happened. You may read this varible but should not modify it.
+- The simulator maintains the time with `ticks` variable. It is increased by 1 when a scheduling is happened. You may read this variable but should not modify it.
 
 - Firstly, we define a schedulable entity, which is a process. The simulator accepts a *process description file* as the argument which describes the processes to simulate. Following example shows an example of the description file for two processes: process 1 and 2.
 
@@ -30,7 +30,7 @@ We have learned various process scheduling policies and examined their propertie
   end
   ```
 
-- In the example, the simulator will create the process 1 at tick 0 as specified by `start 0` and keep it live until the process gets aged by 4 ticks (`lifespan 4`). The process will be given a priority value 0 by default unless you specify the priority with `prio` keyword (as of `prio 0` and `prio 10`). The larger priority value implies the higher priority of the process. Likewise, process 2 will be forked at time of tick 5 and live for 10 ticks with priority 10. This information is also shown at the beginning of the program execution as follow.
+- In the example, the simulator will create the process 1 at tick 0 as specified by `start 0` and keep it live until the process gets aged by 4 ticks (`lifespan 4`). The process will be given a priority value 0 by default unless you specify the priority with `prio` keyword (as of `prio 0` and `prio 10`). The larger priority value implies the higher priority of the process. Likewise, process 2 will be forked at time of tick 5 and live for 10 ticks with priority 10. This information is also shown at the beginning of the program execution as follows.
   ```
   - Process 1: Forked at tick 0 and run for 4 ticks with initial priority 0
   - Process 2: Forked at tick 5 and run for 10 ticks with initial priority 10
@@ -67,7 +67,7 @@ We have learned various process scheduling policies and examined their propertie
 
 - For round-robin scheduler, the time quantum coincides with the tick; when the framework calls `schedule()`, it implies the time quantum is expired. You may ignore the priority while implementing the RR scheduler.
 
-- The priority-based schedulers should handle processes with the same priority in the round-robin way; If two or more processes are with the same priority, they should be swiched on each tick.
+- The priority-based schedulers should handle processes with the same priority in the round-robin way; If two or more processes are with the same priority, they should be switched on each tick.
 
 - For PA, at the every scheduling moment, the priority of the current process is reset to its original priority, and all processes in the readyqueue receive a priority boost by 1. The priority can be boosted up to `MAX_PRIO` defined in `process.h`. The scheduler should pick the process with the highest adjusted priority at this point. Note that the processes with the same priority should be handled in a round-robin manner just like the original priority scheduler.
 
@@ -76,7 +76,7 @@ We have learned various process scheduling policies and examined their propertie
 - When you implement PIP, make sure that the priority of a process is set properly when it releases a resource. There are complicated cases to implement PIP.
   - More than one processes with different priority values can wait for the releasing resource. Suppose one process is holding one resource type, and other process is to acquire the same resource type. And then, another process with higher (or lower) priority is to acquire the resource type again, and then ...
   - Many processes with different priority values are waiting for different resources held by a process.
-  You will get the full points for PIP *if and only if* these cases are all handled properly. Hint: calculate the *current* priority of the releasing process by checking resource acquitision status.
+  You will get the full points for PIP *if and only if* these cases are all handled properly. Hint: calculate the *current* priority of the releasing process by checking resource acquisition status.
   - See [this](https://www.embedded.com/how-to-use-priority-inheritance/) for a comprehensive exposition.
 
 
