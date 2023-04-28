@@ -487,7 +487,8 @@ static void pip_release(int resource_id)
 	struct resource *r = resources + resource_id;
 
 	assert(r->owner == current);
-
+	struct process *org_owner = r->owner;
+	r->owner = NULL;
 
 	if (!list_empty(&r->waitqueue)) {
 		struct process *highest_priority_waiter = list_first_entry(&r->waitqueue, struct process, list);
@@ -504,7 +505,7 @@ static void pip_release(int resource_id)
 	}
 	struct process *highest_priority_waiter = NULL;
 	for(int i = 0; i < NR_RESOURCES; i++){
-		if (!list_empty(&resources[i].waitqueue) && resources[i].owner == r->owner) {
+		if (!list_empty(&resources[i].waitqueue) && resources[i].owner == org_owner) {
 			if(highest_priority_waiter == NULL) highest_priority_waiter = list_first_entry(&resources[i].waitqueue, struct process, list);
 			struct list_head *pos = NULL;
 			list_for_each(pos, &resources[i].waitqueue){
@@ -512,9 +513,8 @@ static void pip_release(int resource_id)
 			}
 		}
 	}
-	if(highest_priority_waiter != NULL) r->owner->prio = highest_priority_waiter->prio;
-	else r->owner->prio = r->owner->prio_orig;
-	r->owner = NULL;
+	if(highest_priority_waiter != NULL) org_owner->prio = highest_priority_waiter->prio;
+	else org_owner->prio = org_owner->prio_orig;
 }
 
 struct scheduler pip_scheduler = {
