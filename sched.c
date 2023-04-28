@@ -325,6 +325,7 @@ static void __do_simulation(void)
 	assert(sched->schedule && "scheduler.schedule() not implemented");
 
 	while (true) {
+		dump_status();
 		struct process *prev;
 
 		/* Fork processes on schedule */

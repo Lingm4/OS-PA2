@@ -513,7 +513,7 @@ static void pip_release(int resource_id)
 			}
 		}
 	}
-	if(highest_priority_waiter != NULL) org_owner->prio = highest_priority_waiter->prio;
+	if(highest_priority_waiter != NULL && org_owner->prio_orig < highest_priority_waiter->prio) org_owner->prio = highest_priority_waiter->prio;
 	else org_owner->prio = org_owner->prio_orig;
 }
 
